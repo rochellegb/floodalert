@@ -19,6 +19,17 @@ def get_globe_code():
     return jsonify("success"), 200
 
 
+#redirect uri missing
+@app.route('/token/', methods=['GET'])
+def get_token():
+    queries = request.args
+    access_token = queries.get("access_token")
+    subs_number = queries.get("subscriber_number")
+    print(access_token)
+    print(subs_number)
+    return jsonify("success"), 200
+
+
 @app.route('/access_token/', methods=['POST'])
 def post_globe_details():
     url = 'https://developer.globelabs.com.ph/oauth/access_token?app_id={}&app_secret={}&code={}'.format(app_id, app_key, '')
