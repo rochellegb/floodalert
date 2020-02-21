@@ -9,25 +9,18 @@ app = Flask(__name__)
 app_key = os.environ.get('GLOBE_APP_SECRET')
 app_id = os.environ.get('GLOBE_APP_ID')
 
-
-#missing redirect uri
-@app.route('/code/', methods=['GET'])
-def get_globe_code():
-    queries = request.args
-    code = queries.get("code")
-    print(code)
-    return jsonify("success"), 200
+subscriber_numbers = []
+access_tokens = []
 
 
-#redirect uri missing
-@app.route('/token/', methods=['GET'])
-def get_token():
+@app.route('/globe/')
+def get_globe_details():
     queries = request.args
     access_token = queries.get("access_token")
-    subs_number = queries.get("subscriber_number")
-    print(access_token)
-    print(subs_number)
-    return jsonify("success"), 200
+    subscriber_number = queries.get("subscriber_number")
+    access_tokens.append(access_token)
+    subscriber_numbers.append(subscriber_number)
+    return jsonify(access_tokens, subscriber_numbers), 200
 
 
 @app.route('/access_token/', methods=['POST'])
