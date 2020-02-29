@@ -21,19 +21,26 @@ app_key = os.environ.get('GLOBE_APP_SECRET')
 app_id = os.environ.get('GLOBE_APP_ID')
 short_code = os.environ.get('GLOBE_SHORT_CODE')
 
-levels = []
-details = [{}]
-
 
 @app.route('/globe/', methods=['GET'])
-def get_globe_details():
-    queries = request.args
-    access_token = queries.get("access_token")
-    subscriber_number = queries.get("subscriber_number")
-    subscriber = SubscriberModel(subscriber_number, access_token)
-    subscriber.save_to_db()
-    subs = SubscriberModel.query.all()
-    return jsonify(subs), 200
+def opt_in():
+    access_token = request.args.get("access_token")
+    subscriber_number = request.args.get("subscriber_number")
+    new_subscriber = Subscribers(access_token=access_token,
+                                 subscriber_number=subscriber_number)
+    Subscribers.save_subscriber(new_subscriber)
+    subscribers = Subscribers.query.all()
+    return render_template('subscribers.html', subscribers=subscribers, title='subscribers'), 200
+
+
+@app.route('/globe/', methods=['POST'])
+def stop_subscription():
+    data = request.get_json()
+    subscriber_number = data['unsubscribed']['subscriber_number']
+    subscriber = Subscribers.query.filter_by(subscriber_number=subscriber_number).first()
+    Subscribers.delete_subscriber(subscriber)
+    subscribers = Subscribers.query.all()
+    return render_template('subscribers.html', subscribers=subscribers, title='subscribers'), 200
 
 
 @app.before_first_request
@@ -57,16 +64,14 @@ def save_level(level):
     return jsonify(levels), 200
 
 
-@app.route('/inbound', methods=['POST'])
-def accept_message():
-    request_data = request.get_json()
-    details.append({
-        "dateTime": request_data['dateTime'],
-        "destinationAddress": request_data['destinationAddress'],
-        "message": request_data['message']
-    })
-    print(details)
-    return jsonify({'message': 'Level has been sent'}), 200
+@app.route('/notify/', methods=['POST'])
+def inbound():
+    data = request.get_json()
+    message = data['inboundSMSMessageList']['inboundSMSMessage'][0]['message']
+    senderAddress = data['inboundSMSMessageList']['inboundSMSMessage'][0]['senderAddress']
+
+    print(message, senderAddress[-10:])
+    return jsonify(message)
 
 
 if __name__ == '__main__':
