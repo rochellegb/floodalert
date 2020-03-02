@@ -22,8 +22,6 @@ app_key = os.environ.get('GLOBE_APP_SECRET')
 app_id = os.environ.get('GLOBE_APP_ID')
 short_code = os.environ.get('GLOBE_SHORT_CODE')
 
-levels = []
-
 
 @app.route('/globe/', methods=['GET'])
 def opt_in():
