@@ -1,0 +1,8 @@
+{% block content %}
+  {% for announcement in announcements %}
+      Height: {{ announcement.height }}
+      Level: {{ announcement.level }}
+      Message: {{ announcement.message }}
+      DateTime: {{ announcement.posted}}
+  {% endfor %}
+{% endblock %}

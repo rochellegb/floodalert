@@ -1,0 +1,6 @@
+{% block content %}
+  {% for subscriber in subscribers %}
+      Access_token: {{ subscriber.access_token }}
+      Subscriber_number: {{ subscriber.subscriber_number }}
+  {% endfor %}
+{% endblock %}
