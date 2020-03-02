@@ -1,11 +1,12 @@
 import os
-from flask import Flask, jsonify, request, json
-from flask_sqlalchemy import SQLAlchemy
 import logging
+from flask import Flask, jsonify, request, render_template
 from dotenv import load_dotenv
 
 from db import db
-from Models.subscriber import SubscriberModel
+from Models.subscriber import Subscribers
+from Models.announcement import Announcements
+from datetime import datetime
 
 
 load_dotenv()
@@ -21,6 +22,8 @@ app_key = os.environ.get('GLOBE_APP_SECRET')
 app_id = os.environ.get('GLOBE_APP_ID')
 short_code = os.environ.get('GLOBE_SHORT_CODE')
 
+levels = []
+
 
 @app.route('/globe/', methods=['GET'])
 def opt_in():
@@ -29,6 +32,7 @@ def opt_in():
     new_subscriber = Subscribers(access_token=access_token,
                                  subscriber_number=subscriber_number)
     Subscribers.save_subscriber(new_subscriber)
+    Announcements.message_after_opt_in(access_token, subscriber_number)
     subscribers = Subscribers.query.all()
     return render_template('subscribers.html', subscribers=subscribers, title='subscribers'), 200
 
@@ -48,30 +52,28 @@ def create_tables():
     db.create_all()
 
 
-#testing
-@app.route('/level/', methods=['GET'])
-def get_level():
-    queries = request.args
-    level = queries.get("level")
-    print(level)
-    return jsonify("success"), 200
-
-
-#testing
-@app.route('/level/<int:level>', methods=['POST'])
-def save_level(level):
-    levels.append(level)
-    return jsonify(levels), 200
-
-
-@app.route('/notify/', methods=['POST'])
+@app.route('/inbound/', methods=['POST'])
 def inbound():
     data = request.get_json()
     message = data['inboundSMSMessageList']['inboundSMSMessage'][0]['message']
-    senderAddress = data['inboundSMSMessageList']['inboundSMSMessage'][0]['senderAddress']
-
-    print(message, senderAddress[-10:])
+    senderaddress = data['inboundSMSMessageList']['inboundSMSMessage'][0]['senderAddress']
+    print(message, senderaddress[-10:])
     return jsonify(message)
+
+
+@app.route('/sensor/', methods=['POST'])
+def posts():
+    req_data = request.get_json()
+
+    height = req_data['ActualHeight']
+    level = req_data['Level']
+    message = req_data['Message']
+
+    data = Announcements(height=height, level=level, message=message)
+    Announcements.save_to_db(data)
+    announcements = Announcements.query.all()
+
+    return render_template('announcements.html', announcements=announcements, title='subscribers'), 200
 
 
 if __name__ == '__main__':
