@@ -1,19 +1,16 @@
 import os
 import logging
-from flask import Flask, jsonify, request, render_template
 from dotenv import load_dotenv
+from flask import Flask, request, jsonify, render_template
 
 from db import db
-from Models.subscriber import Subscribers
-from Models.announcement import Announcements
-from datetime import datetime
+from Models.subscribers import Subscribers
+from Models.announcements import Announcements
 
 
 load_dotenv()
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PROPAGATE_EXCEPTIONS'] = True
+
 
 log = logging.getLogger('app.log')
 log.setLevel(logging.DEBUG)
@@ -21,6 +18,15 @@ log.setLevel(logging.DEBUG)
 app_key = os.environ.get('GLOBE_APP_SECRET')
 app_id = os.environ.get('GLOBE_APP_ID')
 short_code = os.environ.get('GLOBE_SHORT_CODE')
+
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
+app.config['PROPAGATE_EXCEPTIONS'] = True
+
+
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 
 @app.route('/globe/', methods=['GET'])
@@ -30,7 +36,7 @@ def opt_in():
     new_subscriber = Subscribers(access_token=access_token,
                                  subscriber_number=subscriber_number)
     Subscribers.save_subscriber(new_subscriber)
-    Announcements.message_after_opt_in(access_token, subscriber_number)
+    #Announcements.message_after_opt_in(access_token, subscriber_number)
     subscribers = Subscribers.query.all()
     return render_template('subscribers.html', subscribers=subscribers, title='subscribers'), 200
 
@@ -45,17 +51,13 @@ def stop_subscription():
     return render_template('subscribers.html', subscribers=subscribers, title='subscribers'), 200
 
 
-@app.before_first_request
-def create_tables():
-    db.create_all()
-
-
-@app.route('/inbound/', methods=['POST'])
+#accepts json from globe
+@app.route('/notify/', methods=['POST'])
 def inbound():
     data = request.get_json()
     message = data['inboundSMSMessageList']['inboundSMSMessage'][0]['message']
-    senderaddress = data['inboundSMSMessageList']['inboundSMSMessage'][0]['senderAddress']
-    print(message, senderaddress[-10:])
+    senderAddress = data['inboundSMSMessageList']['inboundSMSMessage'][0]['senderAddress']
+    print(message, senderAddress[-10:])
     return jsonify(message)
 
 
@@ -77,3 +79,10 @@ def posts():
 if __name__ == '__main__':
     db.init_app(app)
     app.run(port=5000, debug=True)
+
+
+
+
+
+
+
