@@ -42,7 +42,7 @@ class Announcements(db.Model):
         print(response.text)
 
     #outbound for update
-    def message_after_opt_in(access_token, subscriber_number):
+    def message_after_opt_in(self, access_token, subscriber_number):
         shortcode = short_code[-4:]
         access_token = access_token
         address = subscriber_number
