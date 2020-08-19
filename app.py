@@ -86,7 +86,8 @@ def posts():
     data = Announcements(height=height, level=level, category_level=category_level, time_posted=time_str)
     Announcements.save_to_db(data)
     announcements = Announcements.query.all()
-    full_message = "As of {}. Ang sukat ng tubig sa Consolacion St. ay {} inches at itinataas na ang warning level sa {} or {}".format(time_str, height, message, category_level)
+    full_message = "As of {}. Ang sukat ng tubig sa Consolacion St. ay {} inches at itinataas na ang warning level sa {} or {}"
+                    .format(time_str, height, message, category_level)
 
     if level > 0:
         subsribersID = Subscribers.query.all()
