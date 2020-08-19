@@ -88,11 +88,11 @@ def posts():
     announcements = Announcements.query.all()
     full_message = "As of {}. Ang sukat ng tubig sa Consolacion St. ay {} inches at itinataas na ang warning level sa {} or {}".format(time_str, height, message, category_level)
 
-    # if Level > 0:
-    #     subsribersID = Subscribers.query.all()
-    #     for subscriber in subsribersID:
-    #         outbound(Message=full_message, access_token=subscriber.access_token,
-    #                  subscriber_number=subscriber.subscriber_number)
+    if level > 0:
+        subsribersID = Subscribers.query.all()
+        for subscriber in subsribersID:
+            outbound(Message=full_message, access_token=subscriber.access_token,
+                     subscriber_number=subscriber.subscriber_number)
 
     return render_template('home.html', announcements=announcements, title='subscribers'), 200
 
