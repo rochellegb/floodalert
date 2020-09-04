@@ -2,18 +2,24 @@ import os
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, flash, redirect, url_for
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, login_user, logout_user, current_user
 
 from db import db
 from Models.subscribers import Subscribers
 from Models.announcements import Announcements
+from Models.user import User
+from forms import RegistrationForm, LoginForm
+
 import plot
 import outbound
 
 
 load_dotenv()
 app = Flask(__name__)
-
+b_crypt = Bcrypt(app)
+login_manager = LoginManager(app)
 
 log = logging.getLogger('app.log')
 log.setLevel(logging.DEBUG)
@@ -21,6 +27,9 @@ log.setLevel(logging.DEBUG)
 app_key = os.environ.get('GLOBE_APP_SECRET')
 app_id = os.environ.get('GLOBE_APP_ID')
 short_code = os.environ.get('GLOBE_SHORT_CODE')
+
+SECRET_KEY = os.urandom(32)
+app.config['SECRET_KEY'] = SECRET_KEY
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
@@ -30,6 +39,39 @@ app.config['PROPAGATE_EXCEPTIONS'] = True
 @app.before_first_request
 def create_tables():
     db.create_all()
+
+
+@app.route('/register/', methods=['POST', 'GET'])
+def register():
+    if current_user.is_authenticated:
+        return url_for('home')
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_password = b_crypt.generate_password_hash(form.password.data).decode('utf-8')
+        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        User.save_account(user)
+        flash(f'Account created!', 'success')
+        return redirect(url_for('home'))
+    return render_template('register.html', title='Register', form=form), 200
+
+
+@app.route('/login/', methods=['POST', 'GET'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and b_crypt.check_password_hash(user.password, form.password):
+            login_user(user)
+            return redirect(url_for("home"))
+        else:
+            flash(f'Login Unsuccessful!', 'danger')
+    return render_template('login.html', title='Login', form=form), 200
+
+
+@app.route('/logout/', methods=['POST', 'GET'])
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 
 # registration to subscribe
@@ -71,7 +113,7 @@ def inbound():
 
 
 # sending sensor data to db
-@app.route('/', methods=['POST'])
+@app.route('/home', methods=['POST'])
 def posts():
     req_data = request.args
 
@@ -86,22 +128,27 @@ def posts():
     data = Announcements(height=height, level=level, category_level=category_level, time_posted=time_str)
     Announcements.save_to_db(data)
     announcements = Announcements.query.all()
-    full_message = "As of {}. Ang sukat ng tubig sa Consolacion St. ay {} inches at itinataas na ang warning level sa {} or {}"
-                    .format(time_str, height, message, category_level)
+    full_message = "As of {}. Ang sukat ng tubig sa Consolacion St. ay {} inches at itinataas na ang warning level sa {} or {}".format(time_str, height, message, category_level)
 
-    if level > 0:
-        subsribersID = Subscribers.query.all()
-        for subscriber in subsribersID:
-            outbound(Message=full_message, access_token=subscriber.access_token,
-                     subscriber_number=subscriber.subscriber_number)
+    # if Level > 0:
+    #     subsribersID = Subscribers.query.all()
+    #     for subscriber in subsribersID:
+    #         outbound(Message=full_message, access_token=subscriber.access_token,
+    #                  subscriber_number=subscriber.subscriber_number)
 
     return render_template('home.html', announcements=announcements, title='subscribers'), 200
 
 
-@app.route('/', methods=['GET'])
-def get():
+@app.route('/home', methods=['GET'])
+def home():
     announcements = db.session.query(Announcements).all()
     return render_template('home.html', announcements=announcements, title='subscribers'), 200
+
+
+@app.route('/admin', methods=['GET'])
+def get_admin():
+    user = db.session.query(User).all()
+    return render_template('admins.html', users=user, title='subscribers'), 200
 
 
 @app.route('/day', methods=['GET'])
