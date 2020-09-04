@@ -13,10 +13,7 @@ def outbound(message, access_token, subscriber_number):
 
     querystring = {"access_token": access_token}
 
-    payload = "{\"outboundSMSMessageRequest\": { \"clientCorrelator\": \""+clientCorrelator+"\", 
-                \"senderAddress\": \""+short_code+"\", 
-                \"outboundSMSTextMessage\": {\"message\": \""+message+"\"}, 
-                \"address\": \""+address+"\" } }"
+    payload = "{\"outboundSMSMessageRequest\": { \"clientCorrelator\": \""+clientCorrelator+"\", \"senderAddress\": \""+short_code+"\", \"outboundSMSTextMessage\": {\"message\": \""+message+"\"}, \"address\": \""+address+"\" } }"
     headers = {'Content-Type': "application/json", 'Host': "devapi.globelabs.com.ph"}
 
     response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
